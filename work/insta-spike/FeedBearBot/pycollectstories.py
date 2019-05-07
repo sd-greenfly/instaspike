@@ -1,6 +1,7 @@
 # ping bearbot API endpoint to ingest stories
 
 import argparse
+import base64
 import boto3
 import botocore
 import codecs
@@ -39,7 +40,7 @@ python_version = sys.version.split(' ')[0]
 
 
 def make_local_file_path_name(filename):
-    path = [os.getcwd(), "tmp", filename]
+    path = ['/tmp', filename]
     return '/'.join(path)
 
 
@@ -51,6 +52,7 @@ def s3_upload(filename):
 def s3_download(filename):
     s3_resource = boto3.resource('s3')
     try:
+        print("[I] getting {} from s3".format(filename))
         s3_resource.Bucket('greenfly').download_file(filename, make_local_file_path_name(filename))
     except botocore.exceptions.ClientError as e:
         if e.response['Error']['Code'] == "404":
@@ -59,18 +61,18 @@ def s3_download(filename):
             raise
 
 
-def get_s3_stories():
+def get_s3_stories(user_to_check):
     s3_client = boto3.client('s3')
-    response = s3_client.list_objects(Bucket='greenfly')
+    print("[I] calling s3 for object list")
+    response = s3_client.list_objects_v2(Bucket='greenfly', Prefix="stories/{}".format(user_to_check))
     results = []
-    for item in response['Contents']:
-        results.append(item['Key'])
+    if response['KeyCount'] > 0:
+        for item in response['Contents']:
+            results.append(item['Key'])
     return results
 
 
 def s3_story_exists(storyname, current_stories):
-    if len(current_stories) == 0:
-        current_stories = get_s3_stories()
     if storyname in current_stories:
         return True
     return False
@@ -183,8 +185,9 @@ def check_directories(user_to_check):
 
 
 # TODO remove no_video_thumbs? or default them to True if we want them?
-def get_media_story(user_to_check, user_id, ig_client, no_video_thumbs=False):
-    current_stories = get_s3_stories()
+def get_media_story(user_to_check, user_id, ig_client, no_video_thumbs=True):
+    current_stories = get_s3_stories(user_to_check)
+    print("[I] got s3 story list")
     try:
         try:
             feed = ig_client.user_story_feed(user_id)
@@ -359,10 +362,85 @@ def start():
             print('-' * 70)
             print("[I] The operation was aborted.")
             exit(0)
-
-
-
     exit(0)
 
 
-start()
+def decrypt(ciphertext):
+    kms = boto3.client('kms')
+    plaintext = kms.decrypt(CiphertextBlob=base64.b64decode(ciphertext))['Plaintext']
+    return plaintext
+
+
+def handler(event,context):
+    filename = 'usernames'
+    if os.path.isfile(filename):
+        users_to_check = [user.rstrip('\n') for user in open(filename)]
+        if not users_to_check:
+            print("[E] The specified file is empty.")
+            print("-" * 70)
+            sys.exit(1)
+        else:
+            print("[I] downloading {:d} users from batch file.".format(len(users_to_check)))
+            print("-" * 70)
+    else:
+        print('[E] The specified file does not exist.')
+        print("-" * 70)
+        sys.exit(1)
+
+    insta_filename = "creds.json"
+    if os.path.isfile(insta_filename):
+        with open(insta_filename) as f:
+            login_creds = json.loads(f.read())
+    USERNAME = decrypt(login_creds["username"])
+    PASSWORD = decrypt(login_creds["password"])
+
+    if USERNAME and PASSWORD:
+        ig_client = login(USERNAME, PASSWORD)
+    else:
+        settings_file = "credentials.json"
+        s3_download(settings_file)
+        if not os.path.isfile(make_local_file_path_name(settings_file)):
+            print("[E] No username/password provided, but there is no login cookie present either.")
+            print("[E] Please supply --username and --password arguments.")
+            exit(1)
+        else:
+            ig_client = login()
+
+    print("-" * 70)
+    # TODO change this to be s3 bucket location
+    print("[I] Files will be downloaded to {:s} then sent to s3".format(make_local_file_path_name("")))
+    print("-" * 70)
+
+    for index, user_to_check in enumerate(users_to_check):
+        try:
+            if not user_to_check.isdigit():
+                user_res = ig_client.username_info(user_to_check)
+                user_id = user_res['user']['pk']
+            else:
+                user_id = user_to_check
+                user_info = ig_client.user_info(user_id)
+                if not user_info.get("user", None):
+                    raise Exception("No user is associated with the given user id.")
+                else:
+                    user_to_check = user_info.get("user").get("username")
+            print("[I] Getting stories for: {:s}".format(user_to_check))
+            print('-' * 70)
+            if check_directories(user_to_check):
+                # TODO make this match signature of method if we change it
+                get_media_story(user_to_check, user_id, ig_client, True)
+            else:
+                print("[E] Could not make required directories. Please create a 'stories' folder manually.")
+                exit(1)
+            if (index + 1) != len(users_to_check):
+                print('-' * 70)
+                print('[I] ({}/{}) 2 second time-out until next user...'.format((index + 1), len(users_to_check)))
+                time.sleep(2)
+            print('-' * 70)
+        except Exception as e:
+            print("[E] An error occurred: " + str(e))
+        except KeyboardInterrupt:
+            print('-' * 70)
+            print("[I] The operation was aborted.")
+            exit(0)
+    print("[I] ------ script is done ------")
+    exit(0)
