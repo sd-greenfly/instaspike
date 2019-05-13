@@ -6,10 +6,12 @@ import boto3
 import botocore
 import codecs
 import datetime
+import decimal
 import json
 import os
 import sys
 import time
+import uuid
 
 try:
     import urllib.request as urllib
@@ -184,6 +186,51 @@ def check_directories(user_to_check):
         return False
 
 
+# Helper class to convert a DynamoDB item to JSON.
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, decimal.Decimal):
+            if abs(o) % 1 > 0:
+                return float(o)
+            else:
+                return int(o)
+        return super(DecimalEncoder, self).default(o)
+
+
+def create_db_entry(user_to_check, save_path_s3, type):
+    dynamodb_client = boto3.client('dynamodb')
+    response = dynamodb_client.put_item(
+        TableName='dev.smm.ig.stories',
+        Item={
+            'ProfileName': {'S': user_to_check},
+            'StoryId': {'S': str(uuid.uuid1())},
+            'StoryLocation': {'S': "https://s3-us-west-2.amazonaws.com/greenfly/{}".format(save_path_s3)},
+            'FoundTime': {'N': str(int(time.time()))},
+            'Type': {'S': type}
+        }
+    )
+    print('[I] insert item succeeded')
+    #print(json.dumps(response, indent=4, cls=DecimalEncoder))
+    #exit(0)
+
+def get_all_usernames():
+    dynamodb_client = boto3.client('dynamodb')
+    response = dynamodb_client.scan(
+        TableName='dev.smm.ig.profiles',
+        Select='ALL_ATTRIBUTES',
+        FilterExpression="#name0 > :value0",
+        ExpressionAttributeNames={
+            "#name0": "ScanUntil"
+        },
+        ExpressionAttributeValues={
+            ":value0": {
+                'N': str(int(time.time()))
+            }
+        }
+    )
+    return response['Items']
+
+
 # TODO remove no_video_thumbs? or default them to True if we want them?
 def get_media_story(user_to_check, user_id, ig_client, no_video_thumbs=True):
     current_stories = get_s3_stories(user_to_check)
@@ -233,6 +280,8 @@ def get_media_story(user_to_check, user_id, ig_client, no_video_thumbs=True):
                     urllib.urlretrieve(video[0], save_path)
                     list_video_new.append(save_path)
                     s3_upload(save_path_s3)
+                    # TODO enter item into dynamodb
+                    create_db_entry(user_to_check, save_path_s3, 'VIDEO')
                 except Exception as e:
                     print("[W] An error occurred: " + str(e))
                     exit(1)
@@ -251,6 +300,8 @@ def get_media_story(user_to_check, user_id, ig_client, no_video_thumbs=True):
                     urllib.urlretrieve(image[0], save_path)
                     list_image_new.append(save_path)
                     s3_upload(save_path_s3)
+                    # TODO enter item into dynamodb
+                    create_db_entry(user_to_check, save_path_s3, 'IMAGE')
                 except Exception as e:
                     print("[W] An error occurred: " + str(e))
                     exit(1)
@@ -372,20 +423,41 @@ def decrypt(ciphertext):
 
 
 def handler(event,context):
-    filename = 'usernames'
-    if os.path.isfile(filename):
-        users_to_check = [user.rstrip('\n') for user in open(filename)]
-        if not users_to_check:
-            print("[E] The specified file is empty.")
-            print("-" * 70)
-            sys.exit(1)
-        else:
-            print("[I] downloading {:d} users from batch file.".format(len(users_to_check)))
-            print("-" * 70)
-    else:
-        print('[E] The specified file does not exist.')
+    # TODO event will be a dict
+    # event['slice'] will be a number
+    # we will access dynamodb table dev.smm.ig.profiles
+    # grab number * (1-50) entries?
+
+    # start with look in dynamodb for full list of names where scan_until is in the future
+    # sort them by scan_until closest date to furthest date
+    # slice the dict to take nth slice of 1-50?
+
+    slice_index = event['slice']
+    users_to_check = []
+    for item in get_all_usernames():
+        users_to_check.append(item['ProfileName']['S'])
+    if len(users_to_check) == 0:
+        print("[E] The table in dynamodb is empty.")
         print("-" * 70)
         sys.exit(1)
+    else:
+        print("[I] downloading {:d} users from dynamodb table.".format(len(users_to_check)))
+        print("-" * 70)
+
+    # filename = 'usernames'
+    # if os.path.isfile(filename):
+    #     users_to_check = [user.rstrip('\n') for user in open(filename)]
+    #     if not users_to_check:
+    #         print("[E] The specified file is empty.")
+    #         print("-" * 70)
+    #         sys.exit(1)
+    #     else:
+    #         print("[I] downloading {:d} users from batch file.".format(len(users_to_check)))
+    #         print("-" * 70)
+    # else:
+    #     print('[E] The specified file does not exist.')
+    #     print("-" * 70)
+    #     sys.exit(1)
 
     insta_filename = "creds.json"
     if os.path.isfile(insta_filename):
@@ -443,4 +515,9 @@ def handler(event,context):
             print("[I] The operation was aborted.")
             exit(0)
     print("[I] ------ script is done ------")
-    exit(0)
+    return "Complete"
+
+event = {
+    "slice" : 1
+}
+handler(event,'')
