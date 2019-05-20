@@ -1,78 +1,62 @@
 import boto3
+from boto3.dynamodb.conditions import Key, Attr
 from datetime import datetime
 import json
 import time
 
+environment = "dev"
+profile_table_name = "{}.smm.ig.profiles".format(environment)
+story_table_name = "{}.smm.ig.stories".format(environment)
+dynamodb_resource = boto3.resource('dynamodb')
 
-profile_table_name = "dev.smm.ig.profiles"
-story_table_name = "dev.smm.ig.stories"
 
 def store_username_db(igprofile):
-    dynamodb_client = boto3.client('dynamodb')
-    response = dynamodb_client.put_item(
-        TableName=profile_table_name,
+    table = dynamodb_resource.Table(profile_table_name)
+    table.put_item(
         Item={
-            'ScanUntil': {'N': str(int(time.time())+172800)},
-            'ProfileName': {'S': igprofile}
+            'ScanUntil': int(time.time()) + 172800,
+            'ProfileName': igprofile
         }
     )
-    response = dynamodb_client.scan(
-        TableName=profile_table_name,
-        Select='ALL_ATTRIBUTES',
-        FilterExpression="#name0 = :value0",
-        ExpressionAttributeNames={
-            "#name0": "ProfileName"
-        },
-        ExpressionAttributeValues={
-            ":value0": {
-                'S': igprofile
-            }
-        }
+    response = table.scan(
+        FilterExpression=Attr('ProfileName').eq(igprofile)
     )
     key_list = []
     for item in response["Items"]:
-        key_list.append(item["ScanUntil"]["N"])
+        key_list.append(item["ScanUntil"])
     key_list.sort()
     key_list.pop()
     for key in key_list:
-        dynamodb_client.delete_item(
-            TableName='dev.smm.ig.profiles',
+        table.delete_item(
             Key={
-                'ScanUntil': {
-                    'N': str(key)
-                },
-                'ProfileName': {
-                    'S': igprofile
-                }
+                'ScanUntil': key,
+                'ProfileName': igprofile
             }
         )
 
 
-def retrieve_available_stories(igprofile):
-    dynamodb_client = boto3.client('dynamodb')
-    response = dynamodb_client.scan(
-        TableName=story_table_name,
-        Select='ALL_ATTRIBUTES',
-        FilterExpression="#name0 = :value0",
-        ExpressionAttributeNames={
-            "#name0": "ProfileName"
-        },
-        ExpressionAttributeValues={
-            ":value0": {
-                'S': igprofile
-            }
-        }
+def sort_date(val):
+    return val["date_found"]
+
+
+def retrieve_available_stories(igprofile, count):
+    table = dynamodb_resource.Table(story_table_name)
+    response = table.query(
+        KeyConditionExpression=Key('ProfileName').eq(igprofile)
     )
     story_list = []
     for item in response["Items"]:
-        print(datetime.fromtimestamp(int(item["FoundTime"]["N"])))
         item_dict = {
-            "url": item["StoryLocation"]['S'],
-            "type": item["Type"]['S'],
-            "date_found": datetime.fromtimestamp(int(item["FoundTime"]["N"])).strftime('%Y-%m-%d %H:%M:%S')
+            "url": item["StoryLocation"],
+            "type": item["Type"],
+            "date_found": datetime.fromtimestamp(int(item["FoundTime"])).strftime('%Y-%m-%d %H:%M:%S')
         }
         story_list.append(item_dict)
-    return story_list
+    story_list.sort(key=sort_date,reverse=True)
+    if count == 0:
+        return story_list
+    else:
+        return story_list[0:count]
 
 
 def handler(event,context):
@@ -81,8 +65,11 @@ def handler(event,context):
     else:
         igprofile = event["queryStringParameters"]["igprofile"]
         store_username_db(igprofile)
-        stories = retrieve_available_stories(igprofile)
+        count = 0 if "count" not in event["queryStringParameters"] else event["queryStringParameters"]["count"]
+        stories = retrieve_available_stories(igprofile, count)
+        stories.insert(0, {"total": len(stories)})
         body = json.dumps(stories)
+
     response = {
         "statusCode": 200,
         "headers": {

@@ -3,6 +3,7 @@
 import argparse
 import base64
 import boto3
+from boto3.dynamodb.conditions import Key, Attr
 import botocore
 import codecs
 import datetime
@@ -38,10 +39,14 @@ from instagram_private_api import Client
 script_version = "2.0"
 python_version = sys.version.split(' ')[0]
 s3_client = boto3.client('s3')
-dynamodb_client = boto3.client('dynamodb')
+dynamodb_resource = boto3.resource('dynamodb')
 
 # s3 stuff
 bucket_name = "greenfly"
+s3_region = "us-west-2"
+environment = "dev"
+story_table_name = "{}.smm.ig.stories".format(environment)
+profile_table_name = "{}.smm.ig.profiles".format(environment)
 
 
 def make_local_file_path_name(filename):
@@ -51,8 +56,7 @@ def make_local_file_path_name(filename):
 
 def s3_upload(filename):
     s3_client.upload_file(make_local_file_path_name(filename), bucket_name, filename)
-    # make file public
-
+    # TODO make file public
 
 
 def s3_download(filename):
@@ -79,7 +83,6 @@ def s3_story_exists(storyname, current_stories):
     if storyname in current_stories:
         return True
     return False
-
 
 
 # login stuff
@@ -185,32 +188,23 @@ def check_directories(user_to_check):
 
 
 def create_db_entry(user_to_check, save_path_s3, type):
-    response = dynamodb_client.put_item(
-        TableName='dev.smm.ig.stories',
+    table = dynamodb_resource.Table(story_table_name)
+    table.put_item(
         Item={
-            'ProfileName': {'S': user_to_check},
-            'StoryId': {'S': str(uuid.uuid1())},
-            'StoryLocation': {'S': "https://s3-us-west-2.amazonaws.com/{}/{}".format(bucket_name,save_path_s3)},
-            'FoundTime': {'N': str(int(time.time()))},
-            'Type': {'S': type}
+            'ProfileName': user_to_check,
+            'StoryId': str(uuid.uuid1()),
+            'StoryLocation': "https://s3-{}.amazonaws.com/{}/{}".format(s3_region, bucket_name, save_path_s3),
+            'FoundTime': int(time.time()),
+            'Type': type
         }
     )
     print('[I] insert item succeeded')
 
 
 def get_all_usernames():
-    response = dynamodb_client.scan(
-        TableName='dev.smm.ig.profiles',
-        Select='ALL_ATTRIBUTES',
-        FilterExpression="#name0 > :value0",
-        ExpressionAttributeNames={
-            "#name0": "ScanUntil"
-        },
-        ExpressionAttributeValues={
-            ":value0": {
-                'N': str(int(time.time()))
-            }
-        }
+    table = dynamodb_resource.Table(profile_table_name)
+    response = table.scan(
+        FilterExpression=Attr("ScanUntil").gt(int(time.time()))
     )
     return response['Items']
 
@@ -419,7 +413,7 @@ def handler(event,context):
     slice_index = event['slice']
     users_to_check = []
     for item in get_all_usernames():
-        users_to_check.append(item['ProfileName']['S'])
+        users_to_check.append(item['ProfileName'])
     if len(users_to_check) == 0:
         print("[E] The table in dynamodb is empty.")
         print("-" * 70)
