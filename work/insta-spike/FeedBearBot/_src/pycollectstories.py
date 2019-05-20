@@ -37,8 +37,11 @@ from instagram_private_api import Client
 
 script_version = "2.0"
 python_version = sys.version.split(' ')[0]
+s3_client = boto3.client('s3')
+dynamodb_client = boto3.client('dynamodb')
 
 # s3 stuff
+bucket_name = "greenfly"
 
 
 def make_local_file_path_name(filename):
@@ -47,15 +50,15 @@ def make_local_file_path_name(filename):
 
 
 def s3_upload(filename):
-    s3_client = boto3.client('s3')
-    s3_client.upload_file(make_local_file_path_name(filename), 'greenfly', filename)
+    s3_client.upload_file(make_local_file_path_name(filename), bucket_name, filename)
+    # make file public
+
 
 
 def s3_download(filename):
     s3_resource = boto3.resource('s3')
     try:
-        print("[I] getting {} from s3".format(filename))
-        s3_resource.Bucket('greenfly').download_file(filename, make_local_file_path_name(filename))
+        s3_resource.Bucket(bucket_name).download_file(filename, make_local_file_path_name(filename))
     except botocore.exceptions.ClientError as e:
         if e.response['Error']['Code'] == "404":
             print("[E] The object {0!s} does not exist on s3.".format(filename))
@@ -64,9 +67,7 @@ def s3_download(filename):
 
 
 def get_s3_stories(user_to_check):
-    s3_client = boto3.client('s3')
-    print("[I] calling s3 for object list")
-    response = s3_client.list_objects_v2(Bucket='greenfly', Prefix="stories/{}".format(user_to_check))
+    response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix="stories/{}".format(user_to_check))
     results = []
     if response['KeyCount'] > 0:
         for item in response['Contents']:
@@ -173,10 +174,7 @@ def login(username="", password=""):
 
     return api
 
-# download stories from instagram
 
-
-# s3 doesn't need this. only the /tmp directory will...
 def check_directories(user_to_check):
     try:
         if not os.path.isdir(make_local_file_path_name("stories/{}/".format(user_to_check))):
@@ -186,35 +184,21 @@ def check_directories(user_to_check):
         return False
 
 
-# Helper class to convert a DynamoDB item to JSON.
-class DecimalEncoder(json.JSONEncoder):
-    def default(self, o):
-        if isinstance(o, decimal.Decimal):
-            if abs(o) % 1 > 0:
-                return float(o)
-            else:
-                return int(o)
-        return super(DecimalEncoder, self).default(o)
-
-
 def create_db_entry(user_to_check, save_path_s3, type):
-    dynamodb_client = boto3.client('dynamodb')
     response = dynamodb_client.put_item(
         TableName='dev.smm.ig.stories',
         Item={
             'ProfileName': {'S': user_to_check},
             'StoryId': {'S': str(uuid.uuid1())},
-            'StoryLocation': {'S': "https://s3-us-west-2.amazonaws.com/greenfly/{}".format(save_path_s3)},
+            'StoryLocation': {'S': "https://s3-us-west-2.amazonaws.com/{}/{}".format(bucket_name,save_path_s3)},
             'FoundTime': {'N': str(int(time.time()))},
             'Type': {'S': type}
         }
     )
     print('[I] insert item succeeded')
-    #print(json.dumps(response, indent=4, cls=DecimalEncoder))
-    #exit(0)
+
 
 def get_all_usernames():
-    dynamodb_client = boto3.client('dynamodb')
     response = dynamodb_client.scan(
         TableName='dev.smm.ig.profiles',
         Select='ALL_ATTRIBUTES',
@@ -515,9 +499,4 @@ def handler(event,context):
             print("[I] The operation was aborted.")
             exit(0)
     print("[I] ------ script is done ------")
-    return "Complete"
-
-event = {
-    "slice" : 1
-}
-handler(event,'')
+    return "Completed checking {} users".format(len(users_to_check))

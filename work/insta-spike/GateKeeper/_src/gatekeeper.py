@@ -81,11 +81,8 @@ def handler(event,context):
     else:
         igprofile = event["queryStringParameters"]["igprofile"]
         store_username_db(igprofile)
-        body = "We are checking Instagram username {} for the next 2 days.".format(igprofile)
         stories = retrieve_available_stories(igprofile)
-        if len(stories) > 0:
-            # TODO need to reformat list to something json compatible...
-            body = json.dumps(stories)
+        body = json.dumps(stories)
     response = {
         "statusCode": 200,
         "headers": {
