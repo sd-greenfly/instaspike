@@ -39,10 +39,11 @@ def sort_date(val):
     return val["date_found"]
 
 
-def retrieve_available_stories(igprofile, count):
+def retrieve_available_stories(igprofile, count, since):
     table = dynamodb_resource.Table(story_table_name)
     response = table.query(
-        KeyConditionExpression=Key('ProfileName').eq(igprofile)
+        KeyConditionExpression=Key('ProfileName').eq(igprofile),
+        FilterExpression=Attr('FoundTime').gt(since)
     )
     story_list = []
     for item in response["Items"]:
@@ -60,13 +61,14 @@ def retrieve_available_stories(igprofile, count):
 
 
 def handler(event,context):
+    count = 0 if "count" not in event["queryStringParameters"] else event["queryStringParameters"]["count"]
+    since = int(time.time())-3600 if "since" not in event["queryStringParameters"] else event["queryStringParameters"]["since"]
     if event["queryStringParameters"] is None or "igprofile" not in event["queryStringParameters"]:
         body = "We need you to pass in an Instagram username as igprofile."
     else:
         igprofile = event["queryStringParameters"]["igprofile"]
         store_username_db(igprofile)
-        count = 0 if "count" not in event["queryStringParameters"] else event["queryStringParameters"]["count"]
-        stories = retrieve_available_stories(igprofile, count)
+        stories = retrieve_available_stories(igprofile, count, int(since))
         stories.insert(0, {"total": len(stories)})
         body = json.dumps(stories)
 
