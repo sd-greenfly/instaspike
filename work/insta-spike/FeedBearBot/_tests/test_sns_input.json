@@ -2,7 +2,7 @@
   "Records":[
     {
       "Sns": {
-        "Message":"{\"names\":[\"nfl\"]}"
+        "Message":"\"{\\\"names\\\": [\\\"nfl\\\", \\\"nba\\\"]}\""
       }
     }
   ]
