@@ -1,4 +1,15 @@
 import boto3
+from boto3.dynamodb.conditions import Key, Attr
+import json
+import time
+
+topic_arn = "arn:aws:sns:us-west-2:968765799102:smmigfan"
+
+dynamodb_resource = boto3.resource('dynamodb')
+environment = "dev"
+profile_table_name = "{}.smm.ig.profiles".format(environment)
+sns = boto3.resource('sns')
+topic = sns.Topic(topic_arn)
 
 
 def get_all_usernames():
@@ -24,17 +35,26 @@ def get_number_shards(list_size, shard_size):
     return num_shards
 
 
+def send_users(user_list):
+    msg = {"names": user_list}
+    response = topic.publish(
+        Message=json.dumps(json.dumps(msg))
+    )
+
+
 def handler(event, context):
     # get list of accounts to scan from profile table
     users_to_check = []
     shard_size = 2
     for item in get_all_usernames():
         users_to_check.append(item['ProfileName'])
-    # first pass, just send the list of all usernames to SNS queue
-        
-#    total_shards = get_number_shards(len(users_to_check), shard_size)
-#    for x in range(total_shards):
-#        shard_users = users_to_check[x*shard_size:((x+1)*shard_size)+1]
+    total_shards = get_number_shards(len(users_to_check), shard_size)
+    if total_shards == 1:
+        send_users(users_to_check)
+    else:
+        for x in range(total_shards):
+            shard_users = users_to_check[x*shard_size:((x+1)*shard_size)]
+            send_users(shard_users)
 
     # include name of ig account to use creds for
     # send those pieces into event to trigger FeedBearBot

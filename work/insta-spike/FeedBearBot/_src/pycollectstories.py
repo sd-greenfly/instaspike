@@ -401,19 +401,9 @@ def decrypt(ciphertext):
 
 
 def handler(event,context):
-    # TODO event will be a dict
-    # event['slice'] will be a number
-    # we will access dynamodb table dev.smm.ig.profiles
-    # grab number * (1-50) entries?
-
-    # start with look in dynamodb for full list of names where scan_until is in the future
-    # sort them by scan_until closest date to furthest date
-    # slice the dict to take nth slice of 1-50?
-
-    slice_index = event['slice']
-    users_to_check = []
-    for item in get_all_usernames():
-        users_to_check.append(item['ProfileName'])
+    message = event['Records'][0]['Sns']['Message']
+    json_msg = json.loads(json.loads(message))
+    users_to_check = json_msg['names']
     if len(users_to_check) == 0:
         print("[E] The table in dynamodb is empty.")
         print("-" * 70)
@@ -422,21 +412,7 @@ def handler(event,context):
         print("[I] downloading {:d} users from dynamodb table.".format(len(users_to_check)))
         print("-" * 70)
 
-    # filename = 'usernames'
-    # if os.path.isfile(filename):
-    #     users_to_check = [user.rstrip('\n') for user in open(filename)]
-    #     if not users_to_check:
-    #         print("[E] The specified file is empty.")
-    #         print("-" * 70)
-    #         sys.exit(1)
-    #     else:
-    #         print("[I] downloading {:d} users from batch file.".format(len(users_to_check)))
-    #         print("-" * 70)
-    # else:
-    #     print('[E] The specified file does not exist.')
-    #     print("-" * 70)
-    #     sys.exit(1)
-
+    # TODO fill this from event as well
     insta_filename = "creds.json"
     if os.path.isfile(insta_filename):
         with open(insta_filename) as f:

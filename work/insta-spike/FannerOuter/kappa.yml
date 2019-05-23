@@ -56,6 +56,7 @@ environments:
             - "sns:Subscribe"
             - "sns:Unsubscribe"
             - "sns:SetTopicAttributes"
+            - "sns:Publish"
             - "lambda:CreateFunction"
             - "lambda:ListFunctions"
             - "lambda:ListEventSourceMappings"
