@@ -412,8 +412,7 @@ def handler(event,context):
         print("[I] downloading {:d} users from dynamodb table.".format(len(users_to_check)))
         print("-" * 70)
 
-    # TODO fill this from event as well
-    username_index = 0
+    username_index = int(json_msg["credential_index"])
     insta_filename = "creds.json"
     if os.path.isfile(insta_filename):
         with open(insta_filename) as f:

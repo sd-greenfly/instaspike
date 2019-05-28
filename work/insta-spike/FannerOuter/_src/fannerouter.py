@@ -35,8 +35,8 @@ def get_number_shards(list_size, shard_size):
     return num_shards
 
 
-def send_users(user_list):
-    msg = {"names": user_list}
+def send_users(user_list, credential_index):
+    msg = {"credential_index": credential_index, "names": user_list}
     response = topic.publish(
         Message=json.dumps(json.dumps(msg))
     )
@@ -50,11 +50,11 @@ def handler(event, context):
         users_to_check.append(item['ProfileName'])
     total_shards = get_number_shards(len(users_to_check), shard_size)
     if total_shards == 1:
-        send_users(users_to_check)
+        send_users(users_to_check, 0)
     else:
         for x in range(total_shards):
             shard_users = users_to_check[x*shard_size:((x+1)*shard_size)]
-            send_users(shard_users)
+            send_users(shard_users, x)
 
     # include name of ig account to use creds for
     # send those pieces into event to trigger FeedBearBot

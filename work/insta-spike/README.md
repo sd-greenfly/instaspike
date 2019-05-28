@@ -7,7 +7,8 @@ To install all this stuff.
 In FeedBearBot directory
 1. modify gen_tables.py to use info for your account (region_name and environment prefix)
 2. python3 gen_tables.py (creates dynamodb tables)
-3. kappa deploy (creates lambda function, gives permissions to dynamodb, s3)
+3. modify _src/creds.json to be encoded with your KMS key and your username/password combo for testing (see README in FeedBearBot)
+4. kappa deploy (creates lambda function, gives permissions to dynamodb, s3)
 
 In GateKeeper directory
 1. kappa deploy (creates lambda function, gives permissions to dynamodb)
