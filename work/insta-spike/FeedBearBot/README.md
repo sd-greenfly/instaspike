@@ -10,6 +10,11 @@ Steps I took to make it function on my MBP.
 -- now program can successfully complete login.
 4. install awscli using pip3
 5. configure awscli -- used my personal s3 account on region: us-west-2
-6. make file containing instagram account names one per line -- I tested with nba, nfl, stephenasmith
-7. "python3 pycollectstories.py -b usernames -u <my_insta_account> -p <my_insta_pass>"
-8. future runs can just be "python3 pycollectstories.py -b usernames"
+
+Encrypt instagram credentials
+
+1. Create an encryption key in AWS console for KMS administrated by user awscli is configured for. (not scripted currently)
+2. aws kms encrypt --key-id alias/keyname --plaintext username --output text
+3. put this value into creds.json
+4. aws kms encrypt --key-id alias/keyname --plaintext password --output text
+5. put this value into creds.json

@@ -112,7 +112,7 @@ def onlogin_callback(api, settings_file):
 def login(username="", password=""):
     device_id = None
     try:
-        settings_file = "credentials.json"
+        settings_file = "{}-credentials.json".format(username)
         local_settings_file = make_local_file_path_name(settings_file)
         s3_download(settings_file)
         if not os.path.isfile(local_settings_file):
@@ -397,7 +397,7 @@ def start():
 def decrypt(ciphertext):
     kms = boto3.client('kms')
     plaintext = kms.decrypt(CiphertextBlob=base64.b64decode(ciphertext))['Plaintext']
-    return plaintext
+    return plaintext.decode('UTF-8')
 
 
 def handler(event,context):
@@ -413,12 +413,15 @@ def handler(event,context):
         print("-" * 70)
 
     # TODO fill this from event as well
+    username_index = 0
     insta_filename = "creds.json"
     if os.path.isfile(insta_filename):
         with open(insta_filename) as f:
-            login_creds = json.loads(f.read())
+            all_creds = json.loads(f.read())
+            login_creds = all_creds[username_index]
     USERNAME = decrypt(login_creds["username"])
     PASSWORD = decrypt(login_creds["password"])
+    print(USERNAME)
 
     if USERNAME and PASSWORD:
         ig_client = login(USERNAME, PASSWORD)
