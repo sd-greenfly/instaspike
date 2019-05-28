@@ -1,0 +1,10 @@
+__pycache__/
+_src/instagram_private_api/
+insta-spike.zip
+instagram_private_api/
+package.zip
+stories/
+test.py
+tmp/
+.kappa/
+setup.sh

@@ -1,10 +1,11 @@
 import boto3
 
 region = "us-west-2"
-aws_account_identifier="968765799102"
-lambda_arn = "arn:aws:lambda:{}:{}:function:gatekeeper".format(region,aws_account_identifier)
+aws_account_identifier = "968765799102"
+gateway_lambda_name = "gatekeeper"
+lambda_arn = "arn:aws:lambda:{}:{}:function:{}".format(region, aws_account_identifier, gateway_lambda_name)
 gateway_name = "smmgateway"
-environment="dev"
+environment = "dev"
 
 client = boto3.client('apigateway')
 

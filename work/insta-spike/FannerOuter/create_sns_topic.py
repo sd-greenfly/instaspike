@@ -1,6 +1,9 @@
 import boto3
 
-arn_scraper = "arn:aws:lambda:us-west-2:968765799102:function:insta-spike"
+region = "us-west-2"
+aws_identifier = "968765799102"
+scraper_lambda_name = "insta-spike"
+arn_scraper = "arn:aws:lambda:{}:{}:function:{}".format(region, aws_identifier, scraper_lambda_name)
 sns = boto3.resource('sns')
 
 topic = sns.create_topic(

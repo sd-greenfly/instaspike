@@ -1,11 +1,15 @@
 import boto3
 import time
 
-dynamodb = boto3.resource('dynamodb', region_name='us-west-2')
+region_name = "us-west-2"
+dynamodb = boto3.resource('dynamodb', region_name=region_name)
+environment = 'dev'
+profile_table_name = "{}.smm.ig.profiles".format(environment)
+story_table_name = "{}.smm.ig.stories".format(environment)
 
 
 table = dynamodb.create_table(
-    TableName='dev.smm.ig.profiles',
+    TableName=profile_table_name,
     KeySchema=[
         {
             'AttributeName': 'ScanUntil',
@@ -34,12 +38,12 @@ table = dynamodb.create_table(
 
 print("Table status:", table.table_status)
 time.sleep(10)
-dynamodbc = boto3.client('dynamodb', region_name='us-west-2')
-response = dynamodbc.describe_table(TableName='dev.smm.ig.profiles')
+dynamodbc = boto3.client('dynamodb', region_name=region_name)
+response = dynamodbc.describe_table(TableName=profile_table_name)
 print("Table status:", response['Table']['TableStatus'])
 
 table = dynamodb.create_table(
-    TableName='dev.smm.ig.stories',
+    TableName=story_table_name,
     KeySchema=[
         {
             'AttributeName': 'ProfileName',
@@ -68,6 +72,6 @@ table = dynamodb.create_table(
 
 print("Table status:", table.table_status)
 time.sleep(10)
-response = dynamodbc.describe_table(TableName='dev.smm.ig.stories')
+response = dynamodbc.describe_table(TableName=story_table_name)
 print("Table status:", response['Table']['TableStatus'])
 
