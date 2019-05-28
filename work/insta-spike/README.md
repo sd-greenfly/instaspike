@@ -17,5 +17,5 @@ In GateKeeper directory
 
 In FannerOuter
 1. kappa deploy (creates lambda function, gives permissions to dynamodb)
-2. modify create_sns_topic.py for your account (region, aws_account_identifier, lambda name from FeedBearBot.3)
-3. python3 create_sns_topic.py (creates sns topic, adds permission to lambda in FeedBearBot.3 to be triggered by & subscribes FeedBearBot.3 lambda to sns topic)
+2. modify create_sns_topic.py for your account (region, aws_account_identifier, lambda name from FeedBearBot.4)
+3. python3 create_sns_topic.py (creates sns topic, adds permission to lambda in FeedBearBot.4 to be triggered by & subscribes FeedBearBot.4 lambda to sns topic)
