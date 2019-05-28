@@ -3,14 +3,17 @@ To install all this stuff.
 1. Install Python 3.7.3
 2. Configure awscli to use your desired aws account
 3. Enable aws account access to dynamodb, lambda, s3 (I did this in web interface, not scripted)
+
 In FeedBearBot directory
 1. modify gen_tables.py to use info for your account (region_name and environment prefix)
 2. python3 gen_tables.py (creates dynamodb tables)
 3. kappa deploy (creates lambda function, gives permissions to dynamodb, s3)
+
 In GateKeeper directory
 1. kappa deploy (creates lambda function, gives permissions to dynamodb)
 2. modify gen_api_gateway.py for your account (region, aws_account_identifier, lambda name from step Gatekeeper.1, environment prefix)
 3. python3 gen_api_gateway.py (creates api gateway access to script, adds permission to lambda in Gatekeeper.1)
+
 In FannerOuter
 1. kappa deploy (creates lambda function, gives permissions to dynamodb)
 2. modify create_sns_topic.py for your account (region, aws_account_identifier, lambda name from FeedBearBot.3)
