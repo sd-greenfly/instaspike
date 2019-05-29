@@ -4,10 +4,11 @@ region = "us-west-2"
 aws_identifier = "968765799102"
 scraper_lambda_name = "insta-spike"
 arn_scraper = "arn:aws:lambda:{}:{}:function:{}".format(region, aws_identifier, scraper_lambda_name)
+sns_topic_name = "smmigfan"
 sns = boto3.resource('sns')
 
 topic = sns.create_topic(
-    Name="smmigfan"
+    Name=sns_topic_name
 )
 
 # add permission to lambda function
