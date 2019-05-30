@@ -1,12 +1,22 @@
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
 import json
+import os
 import time
 
-topic_arn = "arn:aws:sns:us-west-2:968765799102:smmigfan"
+# configurations from file
+config_filename = "configs.json"
+if os.path.isfile(config_filename):
+    with open(config_filename) as f:
+        all_configs = json.loads(f.read())
+environment = all_configs['environment'] if 'environment' in all_configs.keys() else "dev"
+region = all_configs['region'] if 'region' in all_configs.keys() else "us-west-2"
+aws_account_identifier = all_configs['aws_account_identifier'] if 'aws_account_identifier' in all_configs.keys() else "968765799102"
+sns_topic = all_configs['sns_topic'] if 'sns_topic' in all_configs.keys() else "smmigfan"
+
+topic_arn = "arn:aws:sns:{}:{}:{}-{}".format(region, aws_account_identifier, environment, sns_topic)
 
 dynamodb_resource = boto3.resource('dynamodb')
-environment = "dev"
 profile_table_name = "{}.smm.ig.profiles".format(environment)
 credential_table_name = "{}.smm.ig.credentials".format(environment)
 sns = boto3.resource('sns')

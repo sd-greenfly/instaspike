@@ -1,30 +1,40 @@
 import argparse
 import base64
 import boto3
+import json
+import os
 import sys
 import uuid
 
-region = "us-west-2"
-aws_account_identifier = "968765799102"
-environment = 'dev'
+
+# configurations from file
+config_filename = "_src/configs.json"
+if os.path.isfile(config_filename):
+    with open(config_filename) as f:
+        all_configs = json.loads(f.read())
+environment = all_configs['environment'] if 'environment' in all_configs.keys() else "dev"
+region = all_configs['region'] if 'region' in all_configs.keys() else "us-west-2"
+aws_account_identifier = all_configs['aws_account_identifier'] if 'aws_account_identifier' in all_configs.keys() else "968765799102"
+key_alias = all_configs['key_alias'] if 'key_alias' in all_configs.keys() else "alias/robo-greenfly"
+
 credential_table_name = "{}.smm.ig.credentials".format(environment)
 
 dynamodb_resource = boto3.resource('dynamodb', region_name=region)
 kms_client = boto3.client('kms')
 
 
-def encrypt(plaintext, keyalias):
+def encrypt(plaintext):
     response = kms_client.encrypt(
-        KeyId=keyalias,
+        KeyId=key_alias,
         Plaintext=plaintext.encode('UTF-8'),
     )
     return base64.b64encode(response['CiphertextBlob']).decode('UTF-8')
 
 
-def check_alias_exists(keyalias):
+def check_alias_exists():
     response = kms_client.list_aliases()
     for alias in response['Aliases']:
-        if alias['AliasName'] == keyalias:
+        if alias['AliasName'] == key_alias:
             return True
     return False
 
@@ -36,31 +46,23 @@ def main():
                         help="Instagram username to login with.")
     parser.add_argument('-p', '--password', dest='password', type=str, required=False,
                         help="Instagram password to login with.")
-    parser.add_argument('-k,', '--key-alias', dest='keyalias', type=str, required=False,
-                        help="AWS KMS key alias to use to encrypt.")
 
     # Workaround to 'disable' argument abbreviations
     parser.add_argument('--usernamx', help=argparse.SUPPRESS, metavar='IGNORE')
     parser.add_argument('--passworx', help=argparse.SUPPRESS, metavar='IGNORE')
-    parser.add_argument('--key-aliax', help=argparse.SUPPRESS, metavar='IGNORE')
 
     args, unknown = parser.parse_known_args()
 
-    if args.keyalias:
-        if check_alias_exists(args.keyalias):
-            print("[I] key alias is valid. Continuing.")
-        else:
-            print('[E] Bad key alias provided. Please verify correct alias to use with the -k argument.')
-            print("-" * 70)
-            sys.exit(1)
+    if check_alias_exists():
+        print("[I] key alias is valid. Continuing.")
     else:
-        print('[E] No key alias provided. Please use the -k argument.')
+        print('[E] Bad key alias provided in _src/configs.json. Please verify correct alias.')
         print("-" * 70)
         sys.exit(1)
 
     if args.username and args.password:
-        username_encrypted = encrypt(args.username, args.keyalias)
-        password_encrypted = encrypt(args.password, args.keyalias)
+        username_encrypted = encrypt(args.username)
+        password_encrypted = encrypt(args.password)
 
         table = dynamodb_resource.Table(credential_table_name)
         table.put_item(

@@ -1,11 +1,19 @@
 import boto3
+import json
+import os
 
-region = "us-west-2"
-aws_account_identifier = "968765799102"
-gateway_lambda_name = "gatekeeper"
+# configurations from file
+config_filename = "_src/configs.json"
+if os.path.isfile(config_filename):
+    with open(config_filename) as f:
+        all_configs = json.loads(f.read())
+environment = all_configs['environment'] if 'environment' in all_configs.keys() else "dev"
+region = all_configs['region'] if 'region' in all_configs.keys() else "us-west-2"
+aws_account_identifier = all_configs['aws_account_identifier'] if 'aws_account_identifier' in all_configs.keys() else "968765799102"
+gateway_lambda_name = all_configs['gateway_lambda_name'] if 'gateway_lambda_name' in all_configs.keys() else "gatekeeper"
+gateway_name = all_configs['gateway_api_name'] if 'gateway_api_name' in all_configs.keys() else "smmgateway"
+
 lambda_arn = "arn:aws:lambda:{}:{}:function:{}".format(region, aws_account_identifier, gateway_lambda_name)
-gateway_name = "smmgateway"
-environment = "dev"
 
 client = boto3.client('apigateway')
 

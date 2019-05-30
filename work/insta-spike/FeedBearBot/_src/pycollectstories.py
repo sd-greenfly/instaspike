@@ -41,10 +41,15 @@ python_version = sys.version.split(' ')[0]
 s3_client = boto3.client('s3')
 dynamodb_resource = boto3.resource('dynamodb')
 
-# s3 stuff
-bucket_name = "greenfly"
-s3_region = "us-west-2"
-environment = "dev"
+# configurations from file
+config_filename = "configs.json"
+if os.path.isfile(config_filename):
+    with open(config_filename) as f:
+        all_configs = json.loads(f.read())
+environment = all_configs['environment'] if 'environment' in all_configs.keys() else "dev"
+s3_region = all_configs['region'] if 'region' in all_configs.keys() else "us-west-2"
+bucket_name = all_configs['s3_bucket_name'] if 's3_bucket_name' in all_configs.keys else "greenfly"
+
 story_table_name = "{}.smm.ig.stories".format(environment)
 profile_table_name = "{}.smm.ig.profiles".format(environment)
 credential_table_name = "{}.smm.ig.credentials".format(environment)
@@ -425,7 +430,6 @@ def handler(event,context):
         print("-" * 70)
 
     credential_name = json_msg["credential_name"]
-    # retrieve info from db
     login_creds = get_credentials_from_db(credential_name)
     USERNAME = decrypt(login_creds["username"])
     PASSWORD = decrypt(login_creds["password"])

@@ -2,9 +2,17 @@ import boto3
 from boto3.dynamodb.conditions import Key, Attr
 from datetime import datetime
 import json
+import os
 import time
 
-environment = "dev"
+# configurations from file
+config_filename = "configs.json"
+if os.path.isfile(config_filename):
+    with open(config_filename) as f:
+        all_configs = json.loads(f.read())
+environment = all_configs['environment'] if 'environment' in all_configs.keys() else "dev"
+
+
 profile_table_name = "{}.smm.ig.profiles".format(environment)
 story_table_name = "{}.smm.ig.stories".format(environment)
 dynamodb_resource = boto3.resource('dynamodb')

@@ -1,10 +1,19 @@
 import boto3
+import json
+import os
 
-region = "us-west-2"
-aws_account_identifier = "968765799102"
-environment = "dev"
-key_alias = "alias/robo-greenfly"
-user_arn = "arn:aws:iam::{}:user/sd-greenfly".format(aws_account_identifier)
+# configurations from file
+config_filename = "_src/configs.json"
+if os.path.isfile(config_filename):
+    with open(config_filename) as f:
+        all_configs = json.loads(f.read())
+environment = all_configs['environment'] if 'environment' in all_configs.keys() else "dev"
+region = all_configs['region'] if 'region' in all_configs.keys() else "us-west-2"
+aws_account_identifier = all_configs['aws_account_identifier'] if 'aws_account_identifier' in all_configs.keys() else "968765799102"
+key_alias = all_configs['key_alias'] if 'key_alias' in all_configs.keys() else "alias/robo-greenfly"
+key_user = all_configs['key_user'] if 'key_user' in all_configs.keys() else "sd-greenfly"
+
+user_arn = "arn:aws:iam::{}:user/{}".format(aws_account_identifier, key_user)
 
 # generate KMS key
 

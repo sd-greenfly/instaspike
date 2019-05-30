@@ -1,8 +1,17 @@
 import boto3
+import json
+import os
 import time
 
-region_name = "us-west-2"
-environment = 'dev'
+
+# configurations from file
+config_filename = "_src/configs.json"
+if os.path.isfile(config_filename):
+    with open(config_filename) as f:
+        all_configs = json.loads(f.read())
+environment = all_configs['environment'] if 'environment' in all_configs.keys() else "dev"
+region_name = all_configs['region'] if 'region' in all_configs.keys() else "us-west-2"
+
 profile_table_name = "{}.smm.ig.profiles".format(environment)
 story_table_name = "{}.smm.ig.stories".format(environment)
 credential_table_name = "{}.smm.ig.credentials".format(environment)
