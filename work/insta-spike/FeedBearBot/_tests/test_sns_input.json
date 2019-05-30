@@ -2,7 +2,7 @@
   "Records":[
     {
       "Sns": {
-        "Message":"\"{\\\"credential_index\\\": \\\"0\\\", \\\"names\\\": [\\\"nfl\\\", \\\"nba\\\"]}\""
+        "Message":"\"{\\\"credential_name\\\": \\\"sarahigtests\\\", \\\"names\\\": [\\\"nfl\\\", \\\"nba\\\"]}\""
       }
     }
   ]

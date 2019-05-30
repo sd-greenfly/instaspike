@@ -47,6 +47,7 @@ s3_region = "us-west-2"
 environment = "dev"
 story_table_name = "{}.smm.ig.stories".format(environment)
 profile_table_name = "{}.smm.ig.profiles".format(environment)
+credential_table_name = "{}.smm.ig.credentials".format(environment)
 
 
 def make_local_file_path_name(filename):
@@ -400,6 +401,17 @@ def decrypt(ciphertext):
     return plaintext.decode('UTF-8')
 
 
+def get_credentials_from_db(credential_name):
+    login_creds = {}
+    table = dynamodb_resource.Table(credential_table_name)
+    response = table.query(
+        KeyConditionExpression=Key("ProfileName").eq(credential_name)
+    )
+    login_creds['username'] = response['Items'][0]['Username']
+    login_creds['password'] = response['Items'][0]['Password']
+    return login_creds
+
+
 def handler(event,context):
     message = event['Records'][0]['Sns']['Message']
     json_msg = json.loads(json.loads(message))
@@ -412,15 +424,11 @@ def handler(event,context):
         print("[I] downloading {:d} users from dynamodb table.".format(len(users_to_check)))
         print("-" * 70)
 
-    username_index = int(json_msg["credential_index"])
-    insta_filename = "creds.json"
-    if os.path.isfile(insta_filename):
-        with open(insta_filename) as f:
-            all_creds = json.loads(f.read())
-            login_creds = all_creds[username_index]
+    credential_name = json_msg["credential_name"]
+    # retrieve info from db
+    login_creds = get_credentials_from_db(credential_name)
     USERNAME = decrypt(login_creds["username"])
     PASSWORD = decrypt(login_creds["password"])
-    print(USERNAME)
 
     if USERNAME and PASSWORD:
         ig_client = login(USERNAME, PASSWORD)
