@@ -3,7 +3,7 @@
   "environment": "dev",
   "s3_bucket_name": "greenfly",
   "aws_account_identifier": "968765799102",
-  "key_alias": "alias/robo-greenfly",
+  "key_alias": "alias/robot-greenfly",
   "key_user": "sd-greenfly",
   "gateway_lambda_name": "gatekeeper",
   "gateway_api_name": "smmgateway",

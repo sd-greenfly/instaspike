@@ -3,15 +3,16 @@
 1. Install Python 3.7.3
 2. Enable aws account access to dynamodb, lambda, s3 (I did this in web interface, not scripted)
 3. Create user for aws account with administrator level access.
-4. Configure awscli to use your desired aws account & user.
-5. Checkout all code
+4. Create s3 bucket for storing downloaded stories.
+5. Configure awscli to use your desired aws account & user.
+6. Checkout all code
 
 ### In `FeedBearBot` directory
 1. modify `_src/configs.json` to use info for your account
 2. `python3 gen_tables.py` 
    - creates dynamodb tables
 3. `python3 create_kms_key.py` to create your KMS key.
-4. `python3 encrypt_ig_credentials.py -k <key_alias> -u <IGusername> -p <IGpassword>`
+4. `python3 encrypt_ig_credentials.py -u <IGusername> -p <IGpassword>`
    - This will encrypt the username & password and put them into a dynamodb table for use by lambda functions
 5. modify `kappa.yml` to your 
    - aws account -- currently sarah's personal (**must match** `aws_account_identifier` in `_src/configs.json`)
