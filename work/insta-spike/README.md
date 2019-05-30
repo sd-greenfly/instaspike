@@ -7,27 +7,27 @@
 5. Checkout all code
 
 ### In `FeedBearBot` directory
-1. modify `create_kms_key.py` to use info for your account 
-   - region
-   - aws_account_identifier
-   - environment
-   - key_alias (currently alias/robo-greenfly -- it must take the form of "alias/<whatever you want>")
-   - user_arn
-2. `python3 create_kms_key.py` to create your KMS key.
-3. Encode your Instagram account(s) IGusername & IGpassword and place in `_src/creds.json`
-   - `aws kms encrypt --key-id alias/robo-greenfly --plaintext IGusername --output text`
-4. modify `gen_tables.py` to use info for your account 
+1. modify `gen_tables.py` to use info for your account 
    - region_name
    - environment -- if you change the environment prefix, change it also in
      - FeedBearBot.6
      - GateKeeper.1
      - FannerOuter.3
-5. `python3 gen_tables.py` 
+2. `python3 gen_tables.py` 
    - creates dynamodb tables
+3. modify `create_kms_key.py` to use info for your account 
+   - region
+   - aws_account_identifier
+   - environment
+   - key_alias (currently alias/robo-greenfly -- it must take the form of "alias/<whatever you want>")
+   - user_arn
+4. `python3 create_kms_key.py` to create your KMS key.
+5. `python3 encrypt_ig_credentials.py -k <key_alias> -u <IGusername> -p <IGpassword>`
+   - This will encrypt the username & password and put them into a dynamodb table for use by lambda functions
 6. modify `_src/pycollectstories.py` for your account
    - bucket_name
    - s3_region
-   - environment (match FeedBearBot.4)
+   - environment (match FeedBearBot.1)
 7. modify `kappa.yml` to your 
    - aws account -- currently sarah's personal 
      - line 14
@@ -48,7 +48,7 @@
 
 ### In `GateKeeper` directory
 1. modify `_src/gatekeeper.py` for your account 
-   - environment (match FeedBearBot.4)
+   - environment (match FeedBearBot.1)
 2. modify `kappa.yml` to your 
    - aws account -- currently sarah's personal 
      - line 10
@@ -69,7 +69,7 @@
    - region
    - aws_account_identifier
    - lambda name from GateKeeper.3
-   - environment prefix (match FeedBearBot.4)
+   - environment prefix (match FeedBearBot.1)
 6. `python3 gen_api_gateway.py` 
    - creates api gateway access to script, adds permission to lambda in GateKeeper.3
 7. `aws apigateway get-rest-apis` 

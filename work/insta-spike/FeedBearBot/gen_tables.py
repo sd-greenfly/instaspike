@@ -2,11 +2,12 @@ import boto3
 import time
 
 region_name = "us-west-2"
-dynamodb = boto3.resource('dynamodb', region_name=region_name)
 environment = 'dev'
 profile_table_name = "{}.smm.ig.profiles".format(environment)
 story_table_name = "{}.smm.ig.stories".format(environment)
+credential_table_name = "{}.smm.ig.credentials".format(environment)
 
+dynamodb = boto3.resource('dynamodb', region_name=region_name)
 
 table = dynamodb.create_table(
     TableName=profile_table_name,
@@ -75,3 +76,35 @@ time.sleep(10)
 response = dynamodbc.describe_table(TableName=story_table_name)
 print("Table status:", response['Table']['TableStatus'])
 
+table = dynamodb.create_table(
+    TableName=credential_table_name,
+    KeySchema=[
+        {
+            'AttributeName': 'ProfileName',
+            'KeyType': 'HASH'
+        },
+        {
+            'AttributeName': 'ProfileId',
+            'KeyType': 'RANGE'
+        }
+    ],
+    AttributeDefinitions=[
+        {
+            'AttributeName': 'ProfileName',
+            'AttributeType': 'S'
+        },
+        {
+            'AttributeName': 'ProfileId',
+            'AttributeType': 'S'
+        }
+    ],
+    ProvisionedThroughput={
+        'ReadCapacityUnits': 1,
+        'WriteCapacityUnits': 1
+    }
+)
+
+print("Table status:", table.table_status)
+time.sleep(10)
+response = dynamodbc.describe_table(TableName=credential_table_name)
+print("Table status:", response['Table']['TableStatus'])
