@@ -58,7 +58,7 @@ response = client.create_deployment(
     stageName=environment
 )
 
-# add permission to lambda function
+# add permission for apiGateway to invoke lambda function
 lambda_client = boto3.client('lambda')
 response = lambda_client.add_permission(
     FunctionName='gatekeeper',
