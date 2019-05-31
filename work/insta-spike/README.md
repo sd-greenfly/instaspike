@@ -24,6 +24,7 @@
 7. `kappa invoke _tests/test_sns_input.json` 
    - this will run the lambda using the account in FeedBearBot.5, to retrieve the stories from 
    the nba & nfl instagram accounts, storing any results in s3 and the dynamodb tables
+   - this test will take a while the first time you run it, as it is downloading and uploading things. 
 
 ### In `GateKeeper` directory
 1. modify `kappa.yml` to your 
