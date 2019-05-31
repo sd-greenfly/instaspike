@@ -6,7 +6,7 @@
 4. Create s3 bucket for storing downloaded stories.
 5. Configure awscli to use your desired aws account & user.
 6. Checkout all code
-7. modify `_src/configs.json` to use info for your account
+7. modify `FeedBearBot/_src/configs.json` to use info for your account
 8. `python3 configure.py` from inside the base code directory. (It uses relative locations)
 
 ### In `FeedBearBot` directory
@@ -19,10 +19,10 @@
    - environment -- currently `dev` (**must match** `environment` in `_src/configs.json`)
 5. `kappa deploy` 
    - creates lambda function, gives permissions to read/write dynamodb, read/write s3, run lambda function
-   - if you modified the environment name in step 4, you need to run `kappa deploy --env <environment>`
-6. modify `_tests/test_sns_input.json` to have the username of your test instagram account from FeedBearBot.4
+   - if you modified the environment name in FeedBearBot.4, you need to run `kappa deploy --env <environment>`
+6. modify `_tests/test_sns_input.json` to have the username of your test instagram account from FeedBearBot.3
 7. `kappa invoke _tests/test_sns_input.json` 
-   - this will run the lambda using the account in FeedBearBot.5, to retrieve the stories from 
+   - this will run the lambda using the account in FeedBearBot.3, to retrieve the stories from 
    the nba & nfl instagram accounts, storing any results in s3 and the dynamodb tables
    - this test will take a while the first time you run it, as it is downloading and uploading things. 
 
