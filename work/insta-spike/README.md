@@ -59,6 +59,8 @@
    - id from GateKeeper.6
    - name from GateKeeper.6
    - region you used in `_src/configs.json`
+   - change "nfl" in the url to other instagram accounts, to add more accounts for the scripts to watch and get 
+   stories from.
 
 ### In `FannerOuter` directory
 1. `cp ../FeedBearBot/_src/configs.json _src/configs.json`
@@ -83,6 +85,7 @@
    - this will kick the script to query the dynamodb profiles table to find which instagram accounts to query, 
    shard it with 2 accounts per shard, and send messages to the sns topic which the `_src/configs.json` 
    `scraper_lambda_name` lambda is subscribed to. 
+     - the more accounts you have hit in GateKeeper.7, the more shards you will get.
    - You can observe logs from that lambda running in your CloudWatch log group
      - `https://us-west-2.console.aws.amazon.com/cloudwatch/home?region=us-west-2#logStream:group=/aws/lambda/insta-spike;streamFilter=typeLogStreamPrefix`
        - substitute `_src/configs.json` `region`
