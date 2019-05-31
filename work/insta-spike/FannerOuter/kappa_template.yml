@@ -1,5 +1,5 @@
 ---
-name: insta-spike
+name: fannerouter
 environments:
   dev:
     profile: default
@@ -7,22 +7,14 @@ environments:
     policy:
       statements:
         - Effect: Allow
-          Resource: "*"
-          Action:
-            - "kms:Decrypt"
-        - Effect: Allow
-          Resource: "arn:aws:logs:us-west-2:968765799102:*"
+          Resource: "LogGroup"
           Action:
             - "logs:CreateLogGroup"
         - Effect: Allow
-          Resource: "arn:aws:logs:us-west-2:968765799102:log-group:/aws/lambda/insta-spike:*"
+          Resource: "LogStream"
           Action:
             - "logs:CreateLogStream"
             - "logs:PutLogEvents"
-        - Effect: Allow
-          Resource: "*"
-          Action:
-            - "s3:*"
         - Effect: Allow
           Resource: "*"
           Action:
@@ -64,6 +56,7 @@ environments:
             - "sns:Subscribe"
             - "sns:Unsubscribe"
             - "sns:SetTopicAttributes"
+            - "sns:Publish"
             - "lambda:CreateFunction"
             - "lambda:ListFunctions"
             - "lambda:ListEventSourceMappings"
@@ -98,8 +91,8 @@ environments:
                 - "dax.amazonaws.com"
                 - "dynamodb.application-autoscaling.amazonaws.com"
 lambda:
-  description: Greenfly Test Instagram Story Scraper
-  handler: pycollectstories.handler
+  description: Greenfly Test FannerOuter to schedule scrapes in shards
+  handler: fannerouter.handler
   runtime: python3.7
   memory_size: 128
   timeout: 120

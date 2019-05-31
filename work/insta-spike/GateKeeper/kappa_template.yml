@@ -7,11 +7,11 @@ environments:
     policy:
       statements:
         - Effect: Allow
-          Resource: "arn:aws:logs:us-west-2:968765799102:*"
+          Resource: "LogGroup"
           Action:
             - "logs:CreateLogGroup"
         - Effect: Allow
-          Resource: "arn:aws:logs:us-west-2:968765799102:log-group:/aws/lambda/gatekeeper:*"
+          Resource: "LogStream"
           Action:
             - "logs:CreateLogStream"
             - "logs:PutLogEvents"
