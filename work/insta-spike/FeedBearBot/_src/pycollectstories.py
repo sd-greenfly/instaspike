@@ -42,20 +42,13 @@ s3_client = boto3.client('s3')
 dynamodb_resource = boto3.resource('dynamodb')
 
 # configurations from file
-config_filename = "src/configs.json"
-all_configs = {"environment": "dev", "region": "us-west-2", "bucket_name": "greenfly"}
+config_filename = "configs.json"
 if os.path.isfile(config_filename):
     with open(config_filename) as f:
-        file_configs = json.loads(f.read())
-        if 'environment' in file_configs.keys():
-            all_configs['environment'] = file_configs['environment']
-        if 'region' in file_configs.keys():
-            all_configs['region'] = file_configs['region']
-        if 's3_bucket_name' in file_configs.keys():
-            all_configs['bucket_name'] = file_configs['s3_bucket_name']
-environment = all_configs['environment']
-s3_region = all_configs['region']
-bucket_name = all_configs['bucket_name']
+        all_configs = json.loads(f.read())
+environment = all_configs['environment'] if 'environment' in all_configs.keys() else "dev"
+s3_region = all_configs['region'] if 'region' in all_configs.keys() else "us-west-2"
+bucket_name = all_configs['s3_bucket_name'] if 's3_bucket_name' in all_configs.keys() else "greenfly"
 
 story_table_name = "{}.smm.ig.stories".format(environment)
 profile_table_name = "{}.smm.ig.profiles".format(environment)
