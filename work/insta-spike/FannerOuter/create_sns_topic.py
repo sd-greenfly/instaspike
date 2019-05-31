@@ -13,7 +13,7 @@ aws_account_identifier = all_configs['aws_account_identifier'] if 'aws_account_i
 scraper_lambda_name = all_configs['scraper_lambda_name'] if 'scraper_lambda_name' in all_configs.keys() else "insta-spike"
 sns_topic = all_configs['sns_topic'] if 'sns_topic' in all_configs.keys() else "smmigfan"
 
-arn_scraper = "arn:aws:lambda:{}:{}:function:{}".format(region, aws_identifier, scraper_lambda_name)
+arn_scraper = "arn:aws:lambda:{}:{}:function:{}".format(region, aws_account_identifier, scraper_lambda_name)
 sns_topic_name = "{}-{}".format(environment, sns_topic)
 
 sns = boto3.resource('sns')
