@@ -91,19 +91,11 @@ table = dynamodb.create_table(
         {
             'AttributeName': 'ProfileName',
             'KeyType': 'HASH'
-        },
-        {
-            'AttributeName': 'ProfileId',
-            'KeyType': 'RANGE'
         }
     ],
     AttributeDefinitions=[
         {
             'AttributeName': 'ProfileName',
-            'AttributeType': 'S'
-        },
-        {
-            'AttributeName': 'ProfileId',
             'AttributeType': 'S'
         }
     ],
