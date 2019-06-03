@@ -7,7 +7,6 @@ from boto3.dynamodb.conditions import Key, Attr
 import botocore
 import codecs
 import datetime
-import decimal
 import json
 import os
 import sys
@@ -107,32 +106,25 @@ def from_json(json_object):
     return json_object
 
 
-def onlogin_callback(api, settings_file):
+def onlogin_callback(api, username):
     cache_settings = api.settings
-    with open(make_local_file_path_name(settings_file), 'w') as outfile:
-        json.dump(cache_settings, outfile, default=to_json)
-        print('[I] New auth cookie file was made: {0!s}'.format(make_local_file_path_name(settings_file)))
-    s3_upload(settings_file)
+    table = dynamodb_resource.Table(credential_table_name)
+    response = table.update_item(
+        Key={
+            "ProfileName": username
+        },
+        UpdateExpression="SET Cookie = :c",
+        ExpressionAttributeValues={
+            ":c": json.dumps(cache_settings, default=to_json)
+        }
+    )
 
 
-def login(username="", password=""):
+def login(username="", password="", cookie=""):
     device_id = None
     try:
-        settings_file = "{}-credentials.json".format(username)
-        local_settings_file = make_local_file_path_name(settings_file)
-        s3_download(settings_file)
-        if not os.path.isfile(local_settings_file):
-            # settings file does not exist
-            print('[W] Unable to find auth cookie file: {0!s} (creating a new one...)'.format(local_settings_file))
-
-            # login new
-            api = Client(
-                username, password,
-                on_login=lambda x: onlogin_callback(x, settings_file))
-        else:
-            with open(local_settings_file) as file_data:
-                cached_settings = json.load(file_data, object_hook=from_json)
-
+        if cookie:
+            cached_settings = json.loads(cookie, object_hook=from_json)
             device_id = cached_settings.get('device_id')
             # reuse auth settings
             api = Client(
@@ -140,6 +132,11 @@ def login(username="", password=""):
                 settings=cached_settings)
 
             print('[I] Using cached login cookie for "' + api.authenticated_user_name + '".')
+        else:
+            # login new
+            api = Client(
+                username, password,
+                on_login=lambda x: onlogin_callback(x, username))
 
     except (ClientCookieExpiredError, ClientLoginRequiredError) as e:
         print('[E] ClientCookieExpiredError/ClientLoginRequiredError: {0!s}'.format(e))
@@ -150,7 +147,7 @@ def login(username="", password=""):
             api = Client(
                 username, password,
                 device_id=device_id,
-                on_login=lambda x: onlogin_callback(x, settings_file))
+                on_login=lambda x: onlogin_callback(x, username))
         else:
             print("[E] The login cookie has expired, but no login arguments were given.")
             print("[E] Please supply --username and --password arguments.")
@@ -170,7 +167,7 @@ def login(username="", password=""):
     except Exception as e:
         if str(e).startswith("unsupported pickle protocol"):
             print("[W] This cookie file is not compatible with Python {}.".format(sys.version.split(' ')[0][0]))
-            print("[W] Please delete your cookie file 'credentials.json' and try again.")
+            print("[W] Please delete your cookie file in dynamodb table {} and try again.".format(credential_table_name))
         else:
             print('[E] Unexpected Exception: {0!s}'.format(e))
         print('-' * 70)
@@ -414,6 +411,8 @@ def get_credentials_from_db(credential_name):
     )
     login_creds['username'] = response['Items'][0]['Username']
     login_creds['password'] = response['Items'][0]['Password']
+    if "Cookie" in response['Items'][0].keys():
+        login_creds['cookie'] = response['Items'][0]['Cookie']
     return login_creds
 
 
@@ -433,18 +432,18 @@ def handler(event,context):
     login_creds = get_credentials_from_db(credential_name)
     USERNAME = decrypt(login_creds["username"])
     PASSWORD = decrypt(login_creds["password"])
+    cookie = "None"
+    if "cookie" in login_creds.keys():
+        cookie = login_creds['cookie']
 
-    if USERNAME and PASSWORD:
-        ig_client = login(USERNAME, PASSWORD)
+    if cookie != "None":
+        ig_client = login(cookie=cookie, username=USERNAME, password=PASSWORD)
+    elif USERNAME and PASSWORD:
+        ig_client = login(username=USERNAME, password=PASSWORD)
     else:
-        settings_file = "credentials.json"
-        s3_download(settings_file)
-        if not os.path.isfile(make_local_file_path_name(settings_file)):
-            print("[E] No username/password provided, but there is no login cookie present either.")
-            print("[E] Please supply --username and --password arguments.")
-            exit(1)
-        else:
-            ig_client = login()
+        print("[E] No username/password provided, but there is no login cookie present either.")
+        print("[E] Please supply --username and --password arguments.")
+        exit(1)
 
     print("-" * 70)
     # TODO change this to be s3 bucket location
