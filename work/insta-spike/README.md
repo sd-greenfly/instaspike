@@ -5,9 +5,10 @@
 3. Create user for aws account with administrator level access.
 4. Create s3 bucket for storing downloaded stories.
 5. Configure awscli to use your desired aws account & user.
-6. Checkout all code
-7. modify `FeedBearBot/_src/configs.json` to use info for your account
-8. `python3 configure.py` from inside the base code directory. (It uses relative locations)
+6. `pip3 install kappa`
+7. Checkout all code
+8. modify `FeedBearBot/_src/configs.json` to use info for your account
+9. `python3 configure.py` from inside the base code directory. (It uses relative locations)
 
 ### In `FeedBearBot` directory
 1. `python3 gen_tables.py` 
